@@ -94,6 +94,12 @@ var _express = __webpack_require__(4);
 
 var _express2 = _interopRequireDefault(_express);
 
+var _reactRouterConfig = __webpack_require__(18);
+
+var _Routes = __webpack_require__(7);
+
+var _Routes2 = _interopRequireDefault(_Routes);
+
 var _renderer = __webpack_require__(5);
 
 var _renderer2 = _interopRequireDefault(_renderer);
@@ -110,10 +116,16 @@ app.use(_express2.default.static('public')); // Express to make 'public' directo
 app.get('*', function (req, res) {
     var store = (0, _createStore2.default)();
 
-    // Some logic to initialise
-    // and load data into the store
+    var promises = (0, _reactRouterConfig.matchRoutes)(_Routes2.default, req.path).map(function (_ref) {
+        var route = _ref.route;
+        // reads in all routes and triggers loadData functions
+        return route.loadData ? route.loadData(store) : null; // reading them all into an array, promises[]
+    });
 
-    res.send((0, _renderer2.default)(req, store));
+    Promise.all(promises).then(function () {
+        // Promise.all waits for all promises to be returned, then
+        res.send((0, _renderer2.default)(req, store)); // renders the app
+    });
 });
 
 app.listen(3000, function () {
@@ -151,6 +163,8 @@ var _Routes = __webpack_require__(7);
 
 var _Routes2 = _interopRequireDefault(_Routes);
 
+var _reactRouterConfig = __webpack_require__(18);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = function (req, store) {
@@ -160,7 +174,11 @@ exports.default = function (req, store) {
         _react2.default.createElement(
             _reactRouterDom.StaticRouter,
             { location: req.path, context: {} },
-            _react2.default.createElement(_Routes2.default, null)
+            _react2.default.createElement(
+                'div',
+                null,
+                (0, _reactRouterConfig.renderRoutes)(_Routes2.default)
+            )
         )
     ));
 
@@ -188,8 +206,6 @@ var _react = __webpack_require__(0);
 
 var _react2 = _interopRequireDefault(_react);
 
-var _reactRouterDom = __webpack_require__(1);
-
 var _Home = __webpack_require__(8);
 
 var _Home2 = _interopRequireDefault(_Home);
@@ -200,18 +216,15 @@ var _UsersList2 = _interopRequireDefault(_UsersList);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-exports.default = function () {
-    return _react2.default.createElement(
-        'div',
-        null,
-        _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/', component: _Home2.default }),
-        _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/admin', component: _Home2.default }),
-        _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/users', component: _UsersList2.default }),
-        _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/auth/google', component: _Home2.default }),
-        _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/current_user', component: _Home2.default }),
-        _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/logout', component: _Home2.default })
-    );
-};
+exports.default = [{
+    path: '/',
+    component: _Home2.default,
+    exact: true
+}, {
+    loadData: _UsersList.loadData,
+    path: '/users',
+    component: _UsersList2.default
+}];
 
 /***/ }),
 /* 8 */
@@ -412,6 +425,7 @@ module.exports = require("axios");
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.loadData = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -429,7 +443,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; } // so we can use the ordinary React library
+// allows us to connect React components to Redux store
+
+
+// Allows us to create the fetchUsers action
 
 var UsersList = function (_Component) {
     _inherits(UsersList, _Component);
@@ -443,30 +461,34 @@ var UsersList = function (_Component) {
     _createClass(UsersList, [{
         key: 'componentDidMount',
         value: function componentDidMount() {
+            // tries to fetch users on client-side render
             this.props.fetchUsers();
         }
     }, {
         key: 'renderUsers',
         value: function renderUsers() {
             return this.props.users.map(function (user) {
+                // maps over the returned list of users and
                 return _react2.default.createElement(
                     'li',
                     { key: user.id },
                     user.name
-                );
+                ); // creates individual <li> for them
             });
         }
     }, {
         key: 'render',
         value: function render() {
-            return _react2.default.createElement(
-                'div',
-                null,
-                'Here\'s a big list of users:',
+            return (// calls the helper function to create the list
                 _react2.default.createElement(
-                    'ul',
+                    'div',
                     null,
-                    this.renderUsers()
+                    'Here\'s a big list of users:',
+                    _react2.default.createElement(
+                        'ul',
+                        null,
+                        this.renderUsers()
+                    )
                 )
             );
         }
@@ -476,9 +498,16 @@ var UsersList = function (_Component) {
 }(_react.Component);
 
 function mapStateToProps(state) {
+    // puts the state returned from the reducer into Props
     return { users: state.users };
 }
 
+function loadData(store) {
+    // manual call to fetchUsers done as part of server-side rendering
+    return store.dispatch((0, _actions.fetchUsers)());
+}
+
+exports.loadData = loadData;
 exports.default = (0, _reactRedux.connect)(mapStateToProps, { fetchUsers: _actions.fetchUsers })(UsersList);
 
 /***/ }),
@@ -486,6 +515,12 @@ exports.default = (0, _reactRedux.connect)(mapStateToProps, { fetchUsers: _actio
 /***/ (function(module, exports) {
 
 module.exports = require("babel-polyfill");
+
+/***/ }),
+/* 18 */
+/***/ (function(module, exports) {
+
+module.exports = require("react-router-config");
 
 /***/ })
 /******/ ]);
