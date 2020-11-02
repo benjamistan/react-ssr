@@ -1,4 +1,3 @@
-// Startup point for the client-side application
 import 'babel-polyfill';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -7,10 +6,18 @@ import { createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux'; // React component causing connected components to rerender when state is changed
 import { renderRoutes } from 'react-router-config';
+import axios from 'axios';
 import Routes from './Routes';
 import reducers from './reducers';
 
-const store = createStore(reducers, {}, applyMiddleware(thunk));
+const axiosInstance = axios.create({
+    baseURL: '/api'
+});
+const store = createStore(
+    reducers, 
+    window.INITIAL_STATE, 
+    applyMiddleware(thunk.withExtraArgument(axiosInstance))
+);
 
 ReactDOM.hydrate(
     <Provider store={store}>
