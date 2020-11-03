@@ -23,7 +23,13 @@ app.get('*', (req, res) => {
     }); 
 
     Promise.all(promises).then(() => {                                      // Promise.all waits for all promises to be returned, then
-        res.send(renderer(req, store));                                     // renders the app
+        const context = {};
+        const content = renderer(req, store, context);
+        
+        if (context.notFound) {
+            res.status(404);
+        }                                     // renders the app
+        res.send(content);
     });
 });
 
