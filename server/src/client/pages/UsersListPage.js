@@ -1,6 +1,7 @@
 import React, { Component } from 'react';   // so we can use the ordinary React library
 import { connect } from 'react-redux';      // allows us to connect React components to Redux store
 import { fetchUsers } from '../actions';    // Allows us to create the fetchUsers action
+import { Helmet } from 'react-helmet';
 
 class UsersList extends Component {
     componentDidMount() {                   // tries to fetch users on client-side render
@@ -13,11 +14,21 @@ class UsersList extends Component {
         });
     }
 
+    head() {
+        return (
+                <Helmet>
+                    <title>{`${this.props.users.length} Users Loaded`}</title>
+                    <meta property="og:title" content="Users App"></meta>
+                </Helmet>
+        );
+    }
+
     render() {
         return (                                            // calls the helper function to create the list
-            <div>           
+            <div>
+                {this.head()}          
                 Here's a big list of users:
-                <ul>{this.renderUsers()}</ul>               
+                <ul>{this.renderUsers()}</ul>
             </div>
         );
     }

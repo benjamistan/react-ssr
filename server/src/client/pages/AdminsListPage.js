@@ -1,6 +1,7 @@
 import React, { Component } from 'react';   // so we can use the ordinary React library
 import { connect } from 'react-redux';      // allows us to connect React components to Redux store
 import { fetchAdmins } from '../actions';    // Allows us to create the fetchAdmins action
+import requireAuth from '../components/hocs/requireAuth';
 
 class AdminsListPage extends Component {
     componentDidMount() {                   // tries to fetch admins on client-side render
@@ -34,5 +35,5 @@ function loadData(store) {                                  // manual call to fe
 
 export default {
     loadData,
-    component: connect(mapStateToProps, { fetchAdmins })(AdminsListPage)
+    component: connect(mapStateToProps, { fetchAdmins })(requireAuth(AdminsListPage))
 };

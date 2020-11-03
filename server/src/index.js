@@ -20,15 +20,24 @@ app.get('*', (req, res) => {
 
     const promises = matchRoutes(Routes, req.path).map(({ route }) => {     // reads in all routes and triggers loadData functions
         return route.loadData ? route.loadData(store) : null;               // reading them all into an array, promises[]
-    }); 
-
+    }).map(promise => {
+        if (promise) {
+            return new Promise((resolve, reject) => {
+                promise.then(resolve).catch(resolve);
+            });
+        }
+    });
+    
     Promise.all(promises).then(() => {                                      // Promise.all waits for all promises to be returned, then
         const context = {};
         const content = renderer(req, store, context);
         
+        if (context.url) {
+            return res.redirect(301, context.url);
+        }
         if (context.notFound) {
             res.status(404);
-        }                                     // renders the app
+        }
         res.send(content);
     });
 });
